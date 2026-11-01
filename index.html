@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Art & Dine Log</title>
+    <style>
+        :root {
+            --bg-color: #f7f5f0;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --primary: #5c7285;
+            --secondary: #a7b49e;
+            --accent: #d88c7d;
+            --white: #ffffff;
+            --border: #e0ddd5;
+            --card-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; }
+        .app-container { max-width: 500px; margin: 0 auto; padding-bottom: 80px; min-height: 100vh; background-color: var(--bg-color); position: relative; }
+        
+        /* Header */
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--white); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        h1 { font-size: 1.2rem; color: var(--primary); letter-spacing: 1px; }
+        .icon-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main); }
+
+        /* Alerts */
+        #alert-section { padding: 10px 15px; }
+        .alert-card { background-color: #fcece9; border-left: 4px solid var(--accent); padding: 10px; margin-bottom: 10px; border-radius: 4px; font-size: 0.9rem; }
+        .alert-card strong { color: var(--accent); }
+
+        /* Calendar */
+        .calendar-wrapper { background: var(--white); padding: 15px; margin: 0 15px 15px; border-radius: 8px; box-shadow: var(--card-shadow); }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; font-size: 0.8rem; }
+        .cal-day-header { color: var(--text-sub); font-size: 0.7rem; }
+        .cal-cell { padding: 5px 0; border-radius: 4px; cursor: pointer; position: relative; min-height: 35px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+        .cal-cell:hover { background-color: #f0f0f0; }
+        .cal-today { background-color: #f0f4f8; font-weight: bold; }
+        .cal-selected { border: 1px solid var(--primary); }
+        .dot { width: 6px; height: 6px; background-color: var(--primary); border-radius: 50%; margin-top: 2px; }
+        .bar { width: 100%; height: 4px; background-color: var(--secondary); margin-top: 2px; border-radius: 2px; }
+
+        /* Tabs */
+        .tabs { display: flex; margin: 0 15px 15px; border-radius: 8px; background: #e9e6de; overflow: hidden; }
+        .tab { flex: 1; text-align: center; padding: 10px; font-size: 0.9rem; cursor: pointer; font-weight: bold; color: var(--text-sub); transition: 0.2s; }
+        .tab.active { background: var(--primary); color: var(--white); }
+
+        /* Lists */
+        .list-section { padding: 0 15px; }
+        .card { background: var(--white); padding: 15px; border-radius: 8px; box-shadow: var(--card-shadow); margin-bottom: 15px; position: relative; }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: flex-start; }
+        .card-title { font-weight: bold; font-size: 1.1rem; }
+        .card-meta { font-size: 0.8rem; color: var(--text-sub); }
+        .card-body { font-size: 0.9rem; margin-bottom: 10px; white-space: pre-wrap; }
+        .card-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+        .tag { background: #f0f0f0; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; color: var(--text-sub); }
+        .card-actions { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+        .btn-small { background: var(--secondary); color: var(--white); border: none; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; }
+        .btn-small.outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+        .goods-list { margin-top: 10px; background: #f9f9f9; padding: 8px; border-radius: 6px; font-size: 0.85rem; }
+        .goods-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 4px 0; }
+        .goods-item:last-child { border-bottom: none; }
+
+        /* FAB (Floating Action Button) */
+        .fab-container { position: fixed; bottom: 20px; right: 50%; transform: translateX(200px); display: flex; flex-direction: column; gap: 10px; z-index: 100; }
+        @media (max-width: 500px) { .fab-container { right: 20px; transform: none; } }
+        .fab { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: white; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; border: none; }
+        .fab.wish { background: var(--secondary); }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
+        .modal { background: var(--white); width: 100%; max-width: 400px; border-radius: 12px; max-height: 90vh; overflow-y: auto; padding: 20px; position: relative; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 1.1rem; }
+        .close-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 5px; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; background: #fafafa; }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        .my-places-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .chip { background: #e9e6de; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; color: var(--text-main); }
+        .btn-submit { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
+        .goods-input-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .goods-input-group input { flex: 1; }
+        .goods-input-group button { white-space: nowrap; }
+
+        /* Settings Modal */
+        .settings-menu button { width: 100%; text-align: left; padding: 15px; background: #f9f9f9; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; font-size: 1rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>Art & Dine Log</h1>
+        <button class="icon-btn" onclick="openModal('settings-modal')">⚙️</button>
+    </header>
+
+    <div id="alert-section"></div>
+
+    <div class="calendar-wrapper">
+        <div class="cal-header">
+            <button class="icon-btn" onclick="changeMonth(-1)">◀</button>
+            <span id="cal-month-year"></span>
+            <button class="icon-btn" onclick="changeMonth(1)">▶</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab-wishlist" onclick="switchTab('wishlist')">行きたいメモ</div>
+        <div class="tab" id="tab-log" onclick="switchTab('log')">訪問記録</div>
+    </div>
+
+    <div class="list-section" id="list-container"></div>
+
+    <div class="fab-container">
+        <button class="fab wish" onclick="openWishlistModal()">➕ 展</button>
+        <button class="fab" onclick="openLogModal()">➕ 録</button>
+    </div>
+</div>
+
+<!-- Modal: Log -->
+<div class="modal-overlay" id="log-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span>訪問記録の追加</span>
+            <button class="close-btn" onclick="closeModal('log-modal')">✖</button>
+        </div>
+        <input type="hidden" id="log-id">
+        <div class="form-group">
+            <label>カテゴリ</label>
+            <select id="log-category" class="form-control">
+                <option value="美術館・博物館">美術館・博物館</option>
+                <option value="レストラン・カフェ">レストラン・カフェ</option>
+                <option value="テイクアウト・買物">テイクアウト・買物</option>
+                <option value="その他">その他</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>日付</label>
+            <input type="date" id="log-date" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>タイトル (展覧会名・店名など)</label>
+            <input type="text" id="log-title" class="form-control" placeholder="例: モネ展, 〇〇カフェ">
+        </div>
+        <div class="form-group">
+            <label>場所</label>
+            <input type="text" id="log-place" class="form-control" placeholder="例: 国立新美術館">
+            <div class="my-places-chips" id="my-places-container"></div>
+        </div>
+        <div class="form-group">
+            <label>評価</label>
+            <select id="log-rating" class="form-control">
+                <option value="5">★★★★★ 最高</option>
+                <option value="4">★★★★☆ 良い</option>
+                <option value="3" selected>★★★☆☆ 普通</option>
+                <option value="2">★★☆☆☆ イマイチ</option>
+                <option value="1">★☆☆☆☆ 残念</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>感想・メモ</label>
+            <textarea id="log-memo" class="form-control" placeholder="感想をサクッと記録"></textarea>
+        </div>
+        <div class="form-group">
+            <label>タグ (カンマ区切り)</label>
+            <input type="text" id="log-tags" class="form-control" placeholder="例: 現代アート, 和食, 限定">
+        </div>
+        
+        <div class="form-group">
+            <label>買ったグッズ・お土産</label>
+            <div id="goods-list-input" class="goods-list" style="display:none; margin-bottom:10px;"></div>
+            <div class="goods-input-group">
+                <input type="text" id="good-name" class="form-control" placeholder="品名 (例: 図録)">
+                <input type="number" id="good-price" class="form-control" placeholder="金額 (円)">
+                <button type="button" class="btn-small outline" onclick="addGoodToForm()">追加</button>
+            </div>
+        </div>
+
+        <button class="btn-submit" onclick="saveLog()">保存する</button>
+    </div>
+</div>
+
+<!-- Modal: Wishlist -->
+<div class="modal-overlay" id="wish-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span>行きたい展覧会・イベント</span>
+            <button class="close-btn" onclick="closeModal('wish-modal')">✖</button>
+        </div>
+        <input type="hidden" id="wish-id">
+        <div class="form-group">
+            <label>タイトル</label>
+            <input type="text" id="wish-title" class="form-control" placeholder="例: 特別展〇〇">
+        </div>
+        <div class="form-group">
+            <label>場所</label>
+            <input type="text" id="wish-place" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>前期 (開始日 〜 終了日)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="date" id="wish-p1-start" class="form-control"> 〜 <input type="date" id="wish-p1-end" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>後期 (開始日 〜 終了日)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="date" id="wish-p2-start" class="form-control"> 〜 <input type="date" id="wish-p2-end" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>メモ (チケット等)</label>
+            <textarea id="wish-memo" class="form-control"></textarea>
+        </div>
+        <button class="btn-submit" onclick="saveWish()">保存する</button>
+    </div>
+</div>
+
+<!-- Modal: Settings -->
+<div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span>設定・データ引き継ぎ</span>
+            <button class="close-btn" onclick="closeModal('settings-modal')">✖</button>
+        </div>
+        <div class="settings-menu">
+            <button onclick="exportData()">⬇️ バックアップ保存 (JSON)</button>
+            <button onclick="document.getElementById('import-file').click()">⬆️ データ復元 (JSON)</button>
+            <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
+            <button onclick="editMyPlaces()">📍 マイプレイス（よく行く場所）の編集</button>
+            <button onclick="clearData()" style="color:red;">🗑 全データ削除</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State
+    let data = {
+        logs: [],
+        wishlist: [],
+        myPlaces: ['国立新美術館', '東京都美術館', '近所のカフェ']
+    };
+    let currentTab = 'wishlist';
+    let calDate = new Date();
+    let tempGoods = [];
+    let selectedDateFilter = null;
+
+    // Initialization
+    function init() {
+        const stored = localStorage.getItem('artDineData');
+        if (stored) {
+            data = JSON.parse(stored);
+            if(!data.myPlaces) data.myPlaces = ['国立新美術館', '東京都美術館', '近所のカフェ'];
+        }
+        renderAll();
+    }
+
+    function saveData() {
+        localStorage.setItem('artDineData', JSON.stringify(data));
+        renderAll();
+    }
+
+    function renderAll() {
+        renderAlerts();
+        renderCalendar();
+        renderList();
+        renderMyPlaces();
+    }
+
+    // Tabs
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('tab-wishlist').classList.toggle('active', tab === 'wishlist');
+        document.getElementById('tab-log').classList.toggle('active', tab === 'log');
+        renderList();
+    }
+
+    // Alerts (Countdown)
+    function renderAlerts() {
+        const alertSec = document.getElementById('alert-section');
+        alertSec.innerHTML = '';
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        data.wishlist.forEach(w => {
+            if(w.visited1 && w.visited2) return; // Full visited
+            
+            const checkPhase = (endStr, name, isVisited) => {
+                if(!endStr || isVisited) return;
+                const end = new Date(endStr);
+                const diffTime = end - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays >= 0 && diffDays <= 14) {
+                    const div = document.createElement('div');
+                    div.className = 'alert-card';
+                    div.innerHTML = `⚠️ <strong>${w.title}</strong> (${name}) の終了まで <strong>あと${diffDays}日</strong>！ (${endStr})`;
+                    alertSec.appendChild(div);
+                }
+            };
+            
+            checkPhase(w.phase1End, '前期', w.visited1);
+            checkPhase(w.phase2End, '後期', w.visited2);
+        });
+    }
+
+    // Calendar
+    function changeMonth(delta) {
+        calDate.setMonth(calDate.getMonth() + delta);
+        selectedDateFilter = null;
+        renderCalendar();
+        renderList();
+    }
+
+    function renderCalendar() {
+        const year = calDate.getFullYear();
+        const month = calDate.getMonth();
+        document.getElementById('cal-month-year').textContent = `${year}年 ${month + 1}月`;
+        
+        const grid = document.getElementById('cal-grid');
+        grid.innerHTML = '<div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>';
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        for (let i = 0; i < firstDay; i++) {
+            grid.innerHTML += `<div></div>`;
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(year, month, d);
+            // Adjust timezone issue safely for local YYYY-MM-DD
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            
+            const cell = document.createElement('div');
+            cell.className = 'cal-cell';
+            if (dateStr === todayStr) cell.classList.add('cal-today');
+            if (selectedDateFilter === dateStr) cell.classList.add('cal-selected');
+            
+            cell.innerHTML = `<span>${d}</span>`;
+            
+            // Check logs (Dots)
+            if (data.logs.some(l => l.date === dateStr)) {
+                cell.innerHTML += `<div class="dot"></div>`;
+            }
+            
+            // Check wishlist phases (Bars)
+            const hasEvent = data.wishlist.some(w => {
+                const inP1 = w.phase1Start && w.phase1End && dateStr >= w.phase1Start && dateStr <= w.phase1End;
+                const inP2 = w.phase2Start && w.phase2End && dateStr >= w.phase2Start && dateStr <= w.phase2End;
+                return inP1 || inP2;
+            });
+            if (hasEvent) {
+                cell.innerHTML += `<div class="bar"></div>`;
+            }
+
+            cell.onclick = () => {
+                selectedDateFilter = selectedDateFilter === dateStr ? null : dateStr;
+                renderCalendar();
+                renderList();
+            };
+
+            grid.appendChild(cell);
+        }
+    }
+
+    // List Rendering
+    function renderList() {
+        const container = document.getElementById('list-container');
+        container.innerHTML = '';
+        
+        if (currentTab === 'wishlist') {
+            const list = selectedDateFilter ? 
+                data.wishlist.filter(w => {
+                    const inP1 = w.phase1Start && w.phase1End && selectedDateFilter >= w.phase1Start && selectedDateFilter <= w.phase1End;
+                    const inP2 = w.phase2Start && w.phase2End && selectedDateFilter >= w.phase2Start && selectedDateFilter <= w.phase2End;
+                    return inP1 || inP2;
+                }) : data.wishlist;
+
+            list.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">${w.title}</div>
+                        <div class="card-meta">${w.place || ''}</div>
+                    </div>
+                    ${w.phase1Start ? `<div class="card-meta">前期: ${w.phase1Start} 〜 ${w.phase1End} ${w.visited1 ? '✅' : ''}</div>` : ''}
+                    ${w.phase2Start ? `<div class="card-meta">後期: ${w.phase2Start} 〜 ${w.phase2End} ${w.visited2 ? '✅' : ''}</div>` : ''}
+                    ${w.memo ? `<div class="card-body">${w.memo}</div>` : ''}
+                    <div class="card-actions">
+                        <button class="btn-small outline" onclick="editWish('${w.id}')">編集</button>
+                        <button class="btn-small" onclick="convertToLog('${w.id}')">訪問済みにする</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        } else {
+            const list = selectedDateFilter ? data.logs.filter(l => l.date === selectedDateFilter) : data.logs.sort((a,b) => b.date.localeCompare(a.date));
+            
+            list.forEach(l => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                let goodsHtml = '';
+                if(l.goods && l.goods.length > 0) {
+                    const total = l.goods.reduce((s, g) => s + (Number(g.price)||0), 0);
+                    goodsHtml = `<div class="goods-list"><strong>購入品 (計${total}円)</strong><br>` + 
+                                l.goods.map(g => `・${g.name} (${g.price}円)`).join('<br>') + `</div>`;
+                }
+                
+                div.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">${l.title}</div>
+                        <div class="card-meta">${l.date} | ${l.category}</div>
+                    </div>
+                    <div class="card-meta" style="margin-bottom:8px;">📍 ${l.place} | ${'★'.repeat(l.rating)}${'☆'.repeat(5-l.rating)}</div>
+                    <div class="card-tags">
+                        ${l.tags ? l.tags.split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('') : ''}
+                    </div>
+                    ${l.memo ? `<div class="card-body">${l.memo}</div>` : ''}
+                    ${goodsHtml}
+                    <div class="card-actions">
+                        <button class="btn-small outline" onclick="deleteLog('${l.id}')">削除</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        if(container.innerHTML === '') {
+            container.innerHTML = `<div style="text-align:center; padding: 20px; color:var(--text-sub);">記録がありません</div>`;
+        }
+    }
+
+    // Modals & Forms
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // My Places
+    function renderMyPlaces() {
+        const c = document.getElementById('my-places-container');
+        c.innerHTML = data.myPlaces.map(p => `<button type="button" class="chip" onclick="document.getElementById('log-place').value='${p}'">${p}</button>`).join('');
+    }
+    
+    function editMyPlaces() {
+        const res = prompt('よく行く場所をカンマ区切りで入力してください', data.myPlaces.join(', '));
+        if (res !== null) {
+            data.myPlaces = res.split(',').map(s => s.trim()).filter(s => s);
+            saveData();
+            alert('更新しました');
+        }
+    }
+
+    // Log Logic
+    function openLogModal() {
+        document.getElementById('log-id').value = '';
+        document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('log-title').value = '';
+        document.getElementById('log-place').value = '';
+        document.getElementById('log-memo').value = '';
+        document.getElementById('log-tags').value = '';
+        tempGoods = [];
+        renderGoodsForm();
+        openModal('log-modal');
+    }
+
+    function addGoodToForm() {
+        const name = document.getElementById('good-name').value;
+        const price = document.getElementById('good-price').value;
+        if(name) {
+            tempGoods.push({name, price});
+            document.getElementById('good-name').value = '';
+            document.getElementById('good-price').value = '';
+            renderGoodsForm();
+        }
+    }
+
+    function renderGoodsForm() {
+        const c = document.getElementById('goods-list-input');
+        if(tempGoods.length === 0) {
+            c.style.display = 'none';
+        } else {
+            c.style.display = 'block';
+            c.innerHTML = tempGoods.map((g, i) => `
+                <div class="goods-item">
+                    <span>${g.name} (${g.price}円)</span>
+                    <button type="button" onclick="tempGoods.splice(${i},1); renderGoodsForm();" style="border:none; background:none; cursor:pointer; color:red;">✖</button>
+                </div>
+            `).join('');
+        }
+    }
+
+    function saveLog() {
+        const id = document.getElementById('log-id').value || Date.now().toString();
+        const newLog = {
+            id,
+            category: document.getElementById('log-category').value,
+            date: document.getElementById('log-date').value,
+            title: document.getElementById('log-title').value,
+            place: document.getElementById('log-place').value,
+            rating: parseInt(document.getElementById('log-rating').value),
+            memo: document.getElementById('log-memo').value,
+            tags: document.getElementById('log-tags').value,
+            goods: [...tempGoods]
+        };
+        
+        if(!newLog.title || !newLog.date) return alert('日付とタイトルは必須です');
+
+        data.logs.push(newLog);
+        
+        // Auto add to my places if not exists
+        if(newLog.place && !data.myPlaces.includes(newLog.place)) {
+            data.myPlaces.push(newLog.place);
+        }
+        
+        saveData();
+        closeModal('log-modal');
+    }
+
+    function deleteLog(id) {
+        if(confirm('削除しますか？')) {
+            data.logs = data.logs.filter(l => l.id !== id);
+            saveData();
+        }
+    }
+
+    // Wishlist Logic
+    function openWishlistModal() {
+        document.getElementById('wish-id').value = '';
+        document.getElementById('wish-title').value = '';
+        document.getElementById('wish-place').value = '';
+        document.getElementById('wish-p1-start').value = '';
+        document.getElementById('wish-p1-end').value = '';
+        document.getElementById('wish-p2-start').value = '';
+        document.getElementById('wish-p2-end').value = '';
+        document.getElementById('wish-memo').value = '';
+        openModal('wish-modal');
+    }
+
+    function editWish(id) {
+        const w = data.wishlist.find(x => x.id === id);
+        if(!w) return;
+        document.getElementById('wish-id').value = w.id;
+        document.getElementById('wish-title').value = w.title;
+        document.getElementById('wish-place').value = w.place;
+        document.getElementById('wish-p1-start').value = w.phase1Start || '';
+        document.getElementById('wish-p1-end').value = w.phase1End || '';
+        document.getElementById('wish-p2-start').value = w.phase2Start || '';
+        document.getElementById('wish-p2-end').value = w.phase2End || '';
+        document.getElementById('wish-memo').value = w.memo || '';
+        openModal('wish-modal');
+    }
+
+    function saveWish() {
+        const id = document.getElementById('wish-id').value || Date.now().toString();
+        const w = data.wishlist.find(x => x.id === id) || { visited1: false, visited2: false };
+        
+        const newWish = {
+            id,
+            title: document.getElementById('wish-title').value,
+            place: document.getElementById('wish-place').value,
+            phase1Start: document.getElementById('wish-p1-start').value,
+            phase1End: document.getElementById('wish-p1-end').value,
+            phase2Start: document.getElementById('wish-p2-start').value,
+            phase2End: document.getElementById('wish-p2-end').value,
+            memo: document.getElementById('wish-memo').value,
+            visited1: w.visited1,
+            visited2: w.visited2
+        };
+        
+        if(!newWish.title) return alert('タイトルは必須です');
+
+        if(!document.getElementById('wish-id').value) {
+            data.wishlist.push(newWish);
+        } else {
+            data.wishlist = data.wishlist.map(x => x.id === id ? newWish : x);
+        }
+        
+        saveData();
+        closeModal('wish-modal');
+    }
+
+    function convertToLog(id) {
+        const w = data.wishlist.find(x => x.id === id);
+        if(!w) return;
+        
+        // Mark as visited logic
+        let marked = false;
+        if(w.phase1Start && !w.visited1) { w.visited1 = true; marked = true; }
+        else if(w.phase2Start && !w.visited2) { w.visited2 = true; marked = true; }
+        else { w.visited1 = true; w.visited2 = true; marked = true; }
+
+        saveData(); // Save wish state
+
+        // Open log form pre-filled
+        switchTab('log');
+        openLogModal();
+        document.getElementById('log-title').value = w.title;
+        document.getElementById('log-place').value = w.place;
+        document.getElementById('log-memo').value = w.memo;
+    }
+
+    // Settings (Backup/Restore)
+    function exportData() {
+        const str = JSON.stringify(data);
+        const blob = new Blob([str], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `art_dine_log_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importData(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                data = JSON.parse(event.target.result);
+                saveData();
+                alert('データを復元しました');
+                closeModal('settings-modal');
+            } catch(err) {
+                alert('ファイルの読み込みに失敗しました');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function clearData() {
+        if(confirm('全てのデータを削除します。元には戻せません。本当によろしいですか？')) {
+            localStorage.removeItem('artDineData');
+            data = { logs: [], wishlist: [], myPlaces: ['国立新美術館', '東京都美術館', '近所のカフェ'] };
+            renderAll();
+            closeModal('settings-modal');
+        }
+    }
+
+    // Run
+    init();
+</script>
+</body>
+</html>
